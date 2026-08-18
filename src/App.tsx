@@ -1,11 +1,18 @@
 // src/App.tsx
 import { useState } from 'react';
-import { Dashboard } from './pages/dashboard';
+import { AuthPage } from './pages/AuthPage';
+import { Dashboard } from './pages/Dashboard';
 import { HistoryPage } from './pages/History';
 import { ProfilePage } from './pages/Profile';
 
 function App() {
-  const [ currentPage, setCurrentPage] = useState<'dashboard' | 'history' | 'profile'>('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'history' | 'profile'>('dashboard');
+
+  if (!isAuthenticated) {
+    return <AuthPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <>
       {currentPage === 'dashboard' && <Dashboard onNavigate={setCurrentPage} />}

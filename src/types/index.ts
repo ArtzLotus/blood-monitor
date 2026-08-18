@@ -22,11 +22,21 @@ export interface PredictionResult {
 }
 
 export interface MeasurementRecord {
-  id: string;
-  timestamp: string;
-  inputData: UserData;
-  sensorData: SensorData;
-  prediction: PredictionResult;
+  id: string | number;
+  date: string;
+  time: string;
+  sysBP: number;
+  diaBP: number;
+  bpm: number;
+  riskLevel: 'NORMAL' | 'HIGH';
+  status: string;
+  note?: string;
+  createdAt?: number;
+  age?: number;
+  gender?: string;
+  bmi?: number;
+  smoke?: boolean;
+  diabet?: boolean;
 }
 
 export interface NotificationItem {

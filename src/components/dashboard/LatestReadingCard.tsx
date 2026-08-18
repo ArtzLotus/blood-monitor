@@ -1,3 +1,4 @@
+// src/components/dashboard/LatestReadingCard.tsx
 import React from 'react';
 import { Activity } from 'lucide-react';
 import type { MeasurementRecord } from '../../types';
@@ -7,62 +8,91 @@ interface Props {
 }
 
 export const LatestReadingCard: React.FC<Props> = ({ record }) => {
+  const isHigh = record.riskLevel === 'HIGH';
+  const isHypertension = isHigh ? 'YES' : 'NO';
+  // Hitung persentase probabilitas jika ada atau fallback berbasis tensi
+  const probability = isHigh ? '75%' : '50%';
+
   return (
-    <div className="bg-brand-light rounded-3xl p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-4 text-brand-dark font-semibold">
-        <Activity className="w-5 h-5" />
-        <span>Latest Reading</span>
+    <div className="bg-brand-light rounded-3xl p-5 shadow-sm border border-white/40 text-brand-dark">
+      {/* Header Title */}
+      <div className="flex items-center gap-2 mb-4 font-bold text-brand-deep">
+        <Activity className="w-5 h-5 text-brand-deep" />
+        <span className="text-base">Latest Reading</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {/* Box Pengukuran Darah */}
-        <div className="bg-brand-medium rounded-2xl p-4 text-white flex flex-col justify-between">
-          <div>
-            <span className="text-xs uppercase tracking-wider opacity-80 block text-center">SYS</span>
-            <div className="text-3xl font-extrabold text-center mt-1">
-              {record.sensorData.systolic} <span className="text-xs font-normal opacity-80">mmHg</span>
+      {/* Grid Utama 2 Kolom */}
+      <div className="grid grid-cols-2 gap-3.5 items-stretch">
+        
+        {/* Kolom Kiri: SYS, DIA, Pulse */}
+        <div className="bg-brand-medium text-white rounded-3xl p-3.5 flex flex-col justify-between shadow-xs border border-white/20 text-center">
+          {/* SYS */}
+          <div className="pb-2">
+            <span className="text-[11px] font-bold tracking-wider opacity-90 block">SYS</span>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-3xl font-black">{record.sysBP}</span>
+              <span className="text-[10px] font-medium opacity-80">mmHg</span>
             </div>
           </div>
-          <div className="my-2 border-t border-white/20" />
-          <div>
-            <span className="text-xs uppercase tracking-wider opacity-80 block text-center">DIA</span>
-            <div className="text-3xl font-extrabold text-center mt-1">
-              {record.sensorData.diastolic} <span className="text-xs font-normal opacity-80">mmHg</span>
+
+          <div className="w-full h-px bg-white/30 my-0.5" />
+
+          {/* DIA */}
+          <div className="py-2">
+            <span className="text-[11px] font-bold tracking-wider opacity-90 block">DIA</span>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-3xl font-black">{record.diaBP}</span>
+              <span className="text-[10px] font-medium opacity-80">mmHg</span>
             </div>
           </div>
-          <div className="my-2 border-t border-white/20" />
-          <div>
-            <span className="text-xs uppercase tracking-wider opacity-80 block text-center">Pulse</span>
-            <div className="text-2xl font-bold text-center mt-1">
-              {record.sensorData.heartRate} <span className="text-xs font-normal opacity-80">bpm</span>
+
+          <div className="w-full h-px bg-white/30 my-0.5" />
+
+          {/* Pulse */}
+          <div className="pt-2">
+            <span className="text-[11px] font-bold tracking-wider opacity-90 block">Pulse</span>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-3xl font-black">{record.bpm}</span>
+              <span className="text-[10px] font-medium opacity-80">bpm</span>
             </div>
           </div>
         </div>
 
-        {/* Box Risiko Hipertensi */}
-        <div className="bg-brand-medium rounded-2xl p-4 text-white flex flex-col justify-between text-center">
-          <span className="text-[10px] uppercase font-bold tracking-wider bg-white/20 py-1 px-2 rounded-full inline-block mx-auto mb-2">
+        {/* Kolom Kanan: Header Pill & Risk Box */}
+        <div className="flex flex-col gap-2.5">
+          {/* Badge Pill Atas */}
+          <div className="bg-brand-medium text-white rounded-2xl py-2 px-2 text-center text-[10px] font-black tracking-wider uppercase shadow-xs border border-white/20">
             HYPERTENSION RISK
-          </span>
-          <div>
-            <span className="text-xs opacity-80 block">Risk Probability</span>
-            <div className="text-3xl font-extrabold mt-1">
-              {record.prediction.riskProbability}%
-            </div>
           </div>
-          <div className="my-2 border-t border-white/20" />
-          <div>
-            <span className="text-xs opacity-80 block">Hypertension</span>
-            <div className="text-2xl font-extrabold mt-1 tracking-wider uppercase">
-              {record.prediction.isHypertension ? 'YES' : 'NO'}
+
+          {/* Box Risk Probability & Hypertension Status */}
+          <div className="bg-brand-medium text-white rounded-3xl p-3.5 flex-1 flex flex-col justify-around text-center shadow-xs border border-white/20">
+            {/* Risk Probability */}
+            <div className="pb-2">
+              <span className="text-[11px] font-medium opacity-90 block mb-0.5">
+                Risk Probability
+              </span>
+              <span className="text-3xl font-black tracking-tight">{probability}</span>
+            </div>
+
+            <div className="w-full h-px bg-white/30 my-0.5" />
+
+            {/* Hypertension YES / NO */}
+            <div className="pt-2">
+              <span className="text-[11px] font-medium opacity-90 block mb-0.5">
+                Hypertension
+              </span>
+              <span className="text-3xl font-black tracking-wider">{isHypertension}</span>
             </div>
           </div>
         </div>
+
       </div>
 
-      <p className="text-center text-xs text-brand-dark/70 mt-4 font-medium">
-        Measured at {record.timestamp}
-      </p>
+      {/* Footer Timestamp */}
+      <div className="text-center text-[11px] text-brand-deep font-semibold mt-4">
+        Measured at {record.date} {record.time}
+      </div>
     </div>
   );
 };

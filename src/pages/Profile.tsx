@@ -1,18 +1,53 @@
 // src/pages/Profile.tsx
-import React, { useState } from 'react';
-import { User, Home, Mail, Calendar, UserCheck, Scale, Ruler, Cigarette, Edit3, Check, X } from 'lucide-react';
-import { mockUserProfile } from '../data/dataDummy';
+import React, { useState, useEffect } from 'react';
+import { User, Home, Mail, Calendar, UserCheck, Scale, Ruler, Cigarette, Edit3, Check, X, LogOut, Loader2 } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../services/firebase';
+import { getUserProfile, saveUserProfile, type UserProfileData } from '../services/dbService';
 
 interface ProfilePageProps {
   onNavigate: (page: 'dashboard' | 'history' | 'profile') => void;
 }
 
+const defaultProfile: UserProfileData = {
+  name: 'User',
+  email: '',
+  birthDate: '01-01-2000',
+  gender: 'Male',
+  weight: 60,
+  height: 170,
+  smoke: false,
+};
+
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
-  // State untuk mode edit dan data profile
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(mockUserProfile);
-  const [tempProfile, setTempProfile] = useState(mockUserProfile);
+  const [profile, setProfile] = useState<UserProfileData>(defaultProfile);
+  const [tempProfile, setTempProfile] = useState<UserProfileData>(defaultProfile);
   const today = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const data = await getUserProfile(user.uid);
+        if (data) {
+          setProfile(data);
+          setTempProfile(data);
+        } else {
+          const initData: UserProfileData = {
+            ...defaultProfile,
+            email: user.email || '',
+          };
+          setProfile(initData);
+          setTempProfile(initData);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleStartEdit = () => {
     setTempProfile(profile);
@@ -24,18 +59,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     setIsEditing(false);
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfile(tempProfile);
-    // Update juga variabel mock agar konsisten saat dipakai fitur lain
-    mockUserProfile.name = tempProfile.name;
-    mockUserProfile.email = tempProfile.email;
-    mockUserProfile.birthDate = tempProfile.birthDate;
-    mockUserProfile.gender = tempProfile.gender;
-    mockUserProfile.weight = Number(tempProfile.weight);
-    mockUserProfile.height = Number(tempProfile.height);
-    mockUserProfile.smoke = tempProfile.smoke;
-
+    const user = auth.currentUser;
+    if (user) {
+      await saveUserProfile(user.uid, tempProfile);
+      setProfile(tempProfile);
+    }
     setIsEditing(false);
   };
 
@@ -44,13 +74,30 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     const parts = dateStr.split('-');
     if (parts[0].length === 4) return dateStr;
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
+  };
 
   const toDisplayDateFormat = (dateStr: string) => {
     if (!dateStr || !dateStr.includes('-')) return dateStr;
     const parts = dateStr.split('-');
     if (parts[0].length === 2) return dateStr;
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      onNavigate('dashboard');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-medium" />
+      </div>
+    );
   }
 
   return (
@@ -68,14 +115,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           <div className="flex items-center gap-2">
             {!isEditing && (
               <button
+                type="button"
                 onClick={handleStartEdit}
-                className="w-10 h-10 rounded-full bg-white text-brand-medium flex items-center justify-center shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                className="w-10 h-10 rounded-full bg-white text-brand-medium flex items-center justify-center shadow-xs hover:bg-white/80 transition-colors cursor-pointer"
                 title="Edit Profile"
               >
                 <Edit3 className="w-5 h-5" />
               </button>
             )}
             <button
+              type="button"
               onClick={() => onNavigate('dashboard')}
               className="w-10 h-10 rounded-full bg-brand-medium text-white flex items-center justify-center shadow-xs hover:bg-brand-deep transition-colors cursor-pointer"
               title="Back to Dashboard"
@@ -85,9 +134,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           </div>
         </header>
 
-        {/* Card Main Container */}
+        {/* Card Main Container & Form */}
         <form onSubmit={handleSaveProfile}>
-          <div className="bg-brand-light rounded-3xl p-6 shadow-sm mb-6 flex flex-col items-center">
+          <div className="bg-brand-light rounded-3xl p-6 shadow-sm mb-6 flex flex-col items-center border border-white/40">
             
             {/* Avatar Icon */}
             <div className="w-28 h-28 rounded-full bg-white border-4 border-brand-medium flex items-center justify-center text-brand-medium mb-6 shadow-inner relative">
@@ -118,17 +167,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               <div className="bg-brand-bg/80 rounded-2xl px-4 py-3 flex items-center gap-3 text-brand-dark font-medium text-sm">
                 <Mail className="w-5 h-5 text-brand-medium shrink-0" />
                 <span className="text-brand-dark/70 font-semibold">:</span>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    value={tempProfile.email}
-                    onChange={(e) => setTempProfile({ ...tempProfile, email: e.target.value })}
-                    className="w-full bg-transparent focus:outline-none text-brand-dark font-bold border-b border-brand-medium/30 focus:border-brand-medium px-1"
-                    required
-                  />
-                ) : (
-                  <span>{profile.email}</span>
-                )}
+                <span className="text-brand-dark/80">{profile.email}</span>
               </div>
 
               {/* Tanggal Lahir */}
@@ -140,12 +179,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                     type="date"
                     max={today}
                     value={toInputDateFormat(tempProfile.birthDate)}
-                    onChange={(e) => setTempProfile({ ...tempProfile, birthDate: e.target.value })}
-                    className="w-full bg-transparent focus:outline-none text-brand-dark font-bold border-b border-brand-medium/30 focus:border-brand-medium px-1"
+                    onChange={(e) =>
+                      setTempProfile({
+                        ...tempProfile,
+                        birthDate: toDisplayDateFormat(e.target.value),
+                      })
+                    }
+                    className="w-full bg-transparent focus:outline-none text-brand-dark font-bold border-b border-brand-medium/30 focus:border-brand-medium px-1 cursor-pointer"
                     required
                   />
                 ) : (
-                  <span>{toDisplayDateFormat(profile.birthDate)}</span>
+                  <span>{profile.birthDate}</span>
                 )}
               </div>
 
@@ -252,25 +296,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="w-full bg-slate-300 hover:bg-slate-400 text-brand-dark font-extrabold text-base py-4 rounded-3xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-white/80 hover:bg-white text-brand-dark font-extrabold text-base py-4 rounded-3xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 border border-white/40"
               >
                 <X className="w-5 h-5" /> Cancel
               </button>
               <button
                 type="submit"
-                className="w-full bg-brand-light hover:bg-brand-medium text-white font-extrabold text-base py-4 rounded-3xl shadow-md transition-all cursor-pointer border-2 border-white/30 flex items-center justify-center gap-2"
+                className="w-full bg-brand-medium hover:bg-brand-deep text-white font-extrabold text-base py-4 rounded-3xl shadow-md transition-all cursor-pointer border-2 border-white/30 flex items-center justify-center gap-2"
               >
                 <Check className="w-5 h-5" /> Save Profile
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => onNavigate('dashboard')}
-              className="w-full bg-brand-light hover:bg-brand-medium text-white font-extrabold text-xl py-4 rounded-3xl shadow-md transition-all cursor-pointer border-2 border-white/30"
-            >
-              Back to Home
-            </button>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => onNavigate('dashboard')}
+                className="w-full bg-brand-light hover:bg-brand-medium text-white font-extrabold text-xl py-4 rounded-3xl shadow-md transition-all cursor-pointer border-2 border-white/30"
+              >
+                Back to Home
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full bg-brand-deep hover:bg-brand-dark text-white font-bold text-sm py-3.5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm border border-white/20"
+              >
+                <LogOut className="w-4 h-4" /> Keluar Akun (Logout)
+              </button>
+            </div>
           )}
         </form>
 

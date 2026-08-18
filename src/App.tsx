@@ -1,16 +1,37 @@
 // src/App.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { auth } from './services/firebase';
 import { AuthPage } from './pages/AuthPage';
 import { Dashboard } from './pages/Dashboard';
 import { HistoryPage } from './pages/History';
 import { ProfilePage } from './pages/Profile';
+import { Loader2 } from 'lucide-react';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'history' | 'profile'>('dashboard');
 
-  if (!isAuthenticated) {
-    return <AuthPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  useEffect(() => {
+    // Dengarkan status login user secara real-time
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsAuthChecking(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-medium" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <AuthPage onLoginSuccess={() => setCurrentPage('dashboard')} />;
   }
 
   return (

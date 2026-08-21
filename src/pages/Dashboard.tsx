@@ -18,6 +18,9 @@ import {
   saveUserNotifications, 
   addMeasurementRecord 
 } from '../services/dbService';
+import { notificationService } from '../services/notificationService';
+import { bleService } from '../services/bluetooth';
+import { getLatestMeasurement } from '../services/dbService';
 
 interface DashboardProps {
   onNavigate: (page: 'dashboard' | 'history' | 'profile') => void;
@@ -40,11 +43,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [userName, setUserName] = useState('User');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [historyList, setHistoryList] = useState<MeasurementRecord[]>([]);
-  
+  const [latestData, setLatestData] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const [isBleModalOpen, setIsBleModalOpen] = useState(false);
   const [isBleConnected, setIsBleConnected] = useState(false);
+
+  // Ambil data pengukuran terbaru secara real-time
+  useEffect(() => {
+    const unsubscribe = getLatestMeasurement((data) => {
+      setLatestData(data);
+    });
+    
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, []);
+
+  // Sync status BLE saat komponen mount
+  useEffect(() => {
+    // Sync status awal
+    setIsBleConnected(bleService.isConnected());
+
+    // Dengarkan event disconnect / connect otomatis
+    bleService.onConnectionChange((connected) => {
+      setIsBleConnected(connected);
+    });
+  }, []);
+
+  const handleToggleBle = async () => {
+    if (isBleConnected) {
+      bleService.disconnect();
+    } else {
+      try {
+        const success = await bleService.connect();
+        setIsBleConnected(success);
+      } catch (err) {
+        console.warn('Batal pairing Bluetooth / error:', err);
+      }
+    }
+  };
+
+  // Notification Permission Request on Dashboard Load
+  useEffect(() => {
+    // Minta izin saat dashboard dibuka
+    notificationService.requestPermission();
+  }, []);
+
+  useEffect(() => {
+    // Jalankan interval scheduler berdasarkan list notifikasi aktif
+    if (notifications.length > 0) {
+      notificationService.startScheduler(notifications);
+    }
+
+    return () => {
+      notificationService.stopScheduler();
+    };
+  }, [notifications]);
 
   // Ambil Data Firestore saat Dashboard dimuat
   useEffect(() => {
@@ -162,7 +215,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {/* Kolom Kiri */}
           <div className="space-y-5">
             {latestRecord ? (
-              <LatestReadingCard record={latestRecord} />
+              <LatestReadingCard record={latestData} />
             ) : (
               <div className="bg-brand-light rounded-3xl p-5 shadow-sm text-center text-xs text-brand-deep font-semibold py-8 border border-white/40">
                 Belum ada data pengukuran tensi darah. Klik "Measured Now" untuk mulai.
@@ -214,7 +267,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           isOpen={isBleModalOpen}
           onClose={() => setIsBleModalOpen(false)}
           isConnected={isBleConnected}
-          onToggleConnect={setIsBleConnected}
+          onConnectionChange={(connected) => setIsBleConnected(connected)}
         />
 
       </div>

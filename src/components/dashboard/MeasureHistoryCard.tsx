@@ -26,9 +26,12 @@ export const MeasureHistoryCard: React.FC<Props> = ({ historyData, onViewMore })
             </div>
           ) : (
             historyData.slice(0, 3).map((record) => {
-              const isHigh = record.riskLevel === 'HIGH';
-              const riskText = isHigh ? 'High Risk - Yes' : 'Normal - No';
-              const formattedDate = record.date && record.time 
+              const isHigh = record?.riskLevel === 'HIGH';
+              const riskText = isHigh? 'High Risk - Yes' : 'Normal - No';
+              const riskProb = record?.probability !== undefined
+                ? (record.probability * 100).toFixed(2) + '%'
+                : '0%';
+              const formattedDate = record?.date && record?.time 
                 ? `Measured at ${record.date} ${record.time}`
                 : 'Measured recently';
 
@@ -43,7 +46,7 @@ export const MeasureHistoryCard: React.FC<Props> = ({ historyData, onViewMore })
                       {record.sysBP}/{record.diaBP} mmHg
                     </div>
                     <div className="pl-2 flex items-center justify-center text-xs font-semibold">
-                      {riskText}
+                      {riskProb} {isHigh ? 'High Risk - Yes' : 'Normal - No'}
                     </div>
                   </div>
 

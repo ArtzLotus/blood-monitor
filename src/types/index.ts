@@ -28,6 +28,7 @@ export interface MeasurementRecord {
   sysBP: number;
   diaBP: number;
   bpm: number;
+  probability: number;
   riskLevel: 'NORMAL' | 'HIGH';
   status: string;
   note?: string;

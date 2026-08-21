@@ -72,7 +72,12 @@ export const LatestReadingCard: React.FC<Props> = ({ record }) => {
               <span className="text-[11px] font-medium opacity-90 block mb-0.5">
                 Risk Probability
               </span>
-              <span className="text-3xl font-black tracking-tight">{probability}</span>
+              <span className="text-3xl font-black tracking-tight">
+                {record?.probability !== undefined
+                  ? (record.probability * 100).toFixed(2) + '%'
+                  : '0%'
+                }
+              </span>
             </div>
 
             <div className="w-full h-px bg-white/30 my-0.5" />
@@ -82,7 +87,7 @@ export const LatestReadingCard: React.FC<Props> = ({ record }) => {
               <span className="text-[11px] font-medium opacity-90 block mb-0.5">
                 Hypertension
               </span>
-              <span className="text-3xl font-black tracking-wider">{isHypertension}</span>
+              <span className="text-3xl font-black tracking-wider">{record?.riskLevel === 'HIGH' ? 'YES' : 'NO'}</span>
             </div>
           </div>
         </div>
@@ -91,7 +96,7 @@ export const LatestReadingCard: React.FC<Props> = ({ record }) => {
 
       {/* Footer Timestamp */}
       <div className="text-center text-[11px] text-brand-deep font-semibold mt-4">
-        Measured at {record.date} {record.time}
+        Measured at {record?.date} {record?.time}
       </div>
     </div>
   );

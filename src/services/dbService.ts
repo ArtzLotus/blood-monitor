@@ -7,9 +7,11 @@ import {
   addDoc, 
   getDocs, 
   query, 
-  orderBy 
+  orderBy,
+  onSnapshot,
+  limit, 
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import type { MeasurementRecord, NotificationItem } from '../types';
 
 export interface UserProfileData {
@@ -57,6 +59,7 @@ export const getMeasurementRecords = async (uid: string): Promise<MeasurementRec
       sysBP: Number(data.sysBP ?? 0),
       diaBP: Number(data.diaBP ?? 0),
       bpm: Number(data.bpm ?? 0),
+      probability: Number(data.probability ?? 0),
       riskLevel: data.riskLevel === 'HIGH' ? 'HIGH' : 'NORMAL',
       status: data.status ?? 'Normal',
       note: data.note ?? '',
@@ -84,4 +87,24 @@ export const getUserNotifications = async (uid: string): Promise<NotificationIte
     return snap.data().list as NotificationItem[];
   }
   return [];
+};
+
+export const getLatestMeasurement = (callback: (data:any) => void) => {
+  const user = auth.currentUser;
+  if (!user) return () => {};
+
+  const q = query(
+    collection(db, 'users', user.uid, 'measurements'),
+    orderBy('createdAt', 'desc'),
+    limit(1)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    if (!snapshot.empty) {
+      const latestDoc = snapshot.docs[0].data();
+      callback({ id: snapshot.docs[0].id, ...latestDoc});
+    } else {
+      callback(null);
+    }
+  });
 };

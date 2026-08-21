@@ -78,9 +78,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onNavigate }) => {
             /* Grid 2 Kolom untuk Item Riwayat */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {historyData.map((record) => {
-                const isHigh = record.riskLevel === 'HIGH';
-                const riskText = isHigh ? '50% Risk - No' : '50% Risk - No';
-                const dateText = record.date && record.time 
+                const isHigh = record?.riskLevel === 'HIGH' ? 'High Risk - Yes' : 'Normal - No';
+                const riskProb = record?.probability !== undefined
+                  ? (record.probability * 100).toFixed(2) + '%'
+                  : '0%';
+                const dateText = record?.date && record?.time 
                   ? `Measured at ${record.date} ${record.time}` 
                   : 'Measured at June 29, 2026 8:00 AM';
 
@@ -95,7 +97,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onNavigate }) => {
                         {record.sysBP}/{record.diaBP} mmHg
                       </div>
                       <div className="pl-2 flex items-center justify-center text-xs font-semibold">
-                        {riskText}
+                        {riskProb} {isHigh}
                       </div>
                     </div>
 

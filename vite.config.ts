@@ -14,22 +14,34 @@ export default defineConfig({
         name: 'Tensimeter Digital PWA',
         short_name: 'BloodPress Monitor',
         description: 'Aplikasi Monitoring Tekanan Darah & Prediksi Hipertensi',
-        theme_color: '#0284c7',
-        background_color: '#ffffff',
+        theme_color: '#4fa8b5',
+        background_color: '#dcf0f2',
         display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
-          }
-        ]
-      }
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,gif,woff,woff2}'],
+      },
     })
   ],
 })

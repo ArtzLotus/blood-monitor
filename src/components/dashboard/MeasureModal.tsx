@@ -30,7 +30,7 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
   const [hasDiabetes, setHasDiabetes] = useState<boolean>(false);
   const [result, setResult] = useState<MeasurementRecord | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
+  
   useEffect(() => {
     if (isOpen) {
       setStep('PREPARE');
@@ -63,7 +63,7 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
     let genderStr = 'Male';
 
     if (profile) {
-      isMale = profile.gender === 'Male';
+      isMale = profile.gender === 'Male' || profile.gender === 'Laki-laki';
       genderStr = profile.gender;
       isSmoker = Boolean(profile.smoke);
 
@@ -87,15 +87,15 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
       setStep('COMPLETE');
       setTimeout(() => {
         setStep('RESULT');
-      }, 1800);
+      }, 1500);
     };
 
-    // 2. Kirim profil & dengarkan pembacaan sensor tensi dari ESP32
+    // 2. Pasang listener TERLEBIH DAHULU, kemudian kirim data profil ke ESP32
     try {
       if (bleService.isConnected()) {
-        await bleService.sendUserProfile({ age, isMale, bmi, isSmoker });
-
+        // LANGKAH A: Aktifkan listener penerimaan hasil dari ESP32 terlebih dahulu
         await bleService.startListeningMeasurements((data) => {
+          console.log('[PWA] Data diterima dari ESP32:', data);
           const now = new Date();
           const record: MeasurementRecord = {
             id: Date.now().toString(),
@@ -104,6 +104,7 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
             sysBP: data.sysBP,
             diaBP: data.diaBP,
             bpm: data.bpm,
+            probability: data.probability,
             riskLevel: data.riskLevel,
             status: data.status,
             age,
@@ -114,8 +115,18 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
           };
           processResultData(record);
         });
+
+        // LANGKAH B: Kirim profil lengkap (termasuk status diabetes) ke ESP32 untuk memicu pengukuran & inferensi AI
+        await bleService.sendUserProfile({ 
+          age, 
+          isMale, 
+          bmi, 
+          isSmoker, 
+          diabetes: hasDiabetes 
+        } as any);
+
       } else {
-        // Fallback jika state connected adalah mock/simulasi
+        // Fallback jika mode simulasi tanpa hardware
         setTimeout(() => {
           const now = new Date();
           const mockSys = Math.floor(Math.random() * (135 - 115 + 1)) + 115;
@@ -132,6 +143,7 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
             bpm: mockBpm,
             riskLevel: isHigh ? 'HIGH' : 'NORMAL',
             status: isHigh ? 'High Risk' : 'Normal',
+            probability: isHigh ? 75 : 50,
             age,
             gender: genderStr,
             bmi,
@@ -139,7 +151,7 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
             diabet: hasDiabetes,
           };
           processResultData(record);
-        }, 3800);
+        }, 3000);
       }
     } catch (err: any) {
       console.error('Koneksi BLE error saat pengukuran:', err);
@@ -198,14 +210,14 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
             {/* 2. Pertanyaan Diabetes */}
             <div className="space-y-2">
               <p className="text-xs font-bold text-brand-deep">2. Are you have a Diabetes?</p>
-              <div className="grid grid-cols-2 rounded-2xl overflow-hidden border-2 border-white/50 p-0.5 bg-brand-medium/40">
+              <div className="grid grid-cols-2 rounded-2xl overflow-hidden border-2 border-brand-medium">
                 <button
                   type="button"
                   onClick={() => setHasDiabetes(false)}
-                  className={`py-2 text-xs font-black transition-all cursor-pointer rounded-xl ${
+                  className={`py-2 text-xs font-black transition-all cursor-pointer ${
                     !hasDiabetes
-                      ? 'bg-brand-medium text-white shadow-xs'
-                      : 'text-brand-deep hover:bg-white/30'
+                      ? 'bg-brand-medium text-white shadow-xs rounded-s-xl'
+                      : 'bg-brand-bg text-brand-medium hover:bg-brand-bg/70 hover:rounded-s-xl'
                   }`}
                 >
                   No
@@ -213,10 +225,10 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setHasDiabetes(true)}
-                  className={`py-2 text-xs font-black transition-all cursor-pointer rounded-xl ${
+                  className={`py-2 text-xs font-black transition-all cursor-pointer ${
                     hasDiabetes
-                      ? 'bg-brand-medium text-white shadow-xs'
-                      : 'text-brand-deep hover:bg-white/30'
+                      ? 'bg-brand-medium text-white shadow-xs rounded-e-xl'
+                      : 'bg-brand-bg text-brand-medium hover:bg-brand-bg/70 hover:rounded-e-xl'
                   }`}
                 >
                   Yes
@@ -325,7 +337,7 @@ export const MeasureModal: React.FC<MeasureModalProps> = ({
                   <div className="bg-brand-medium text-white rounded-2xl p-2.5 flex-1 flex flex-col justify-around text-center shadow-xs border border-white/20">
                     <div className="pb-1">
                       <span className="text-[10px] font-medium opacity-90 block">Risk Probability</span>
-                      <span className="text-2xl font-black">{result.riskLevel === 'HIGH' ? '75%' : '50%'}</span>
+                      <span className="text-2xl font-black">{(result.probability * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full h-px bg-white/30 my-0.5" />
                     <div className="pt-1">
